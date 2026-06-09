@@ -1,10 +1,11 @@
 services:
   - type: web
-    name: ratelimiter-shield
+    name: dns-sandbox
     runtime: docker
     plan: free
+    rootDir: dns-sandbox
     envVars:
       - key: PORT
-        value: 8090
-      - key: GATEWAY_PORT
-        value: 8095
+        value: 8060
+      - key: DNS_PORT
+        value: 8053
