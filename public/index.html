@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RateLimiter-Shield // API Gateway Proxy & SRE Traffic Guard</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Chart.js CDN for live SRE graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  
+  <header>
+    <div class="brand">
+      <div class="brand-icon">S</div>
+      <div>
+        <h1>RateLimiter-Shield</h1>
+        <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">API Gateway Proxy & Traffic Guard</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <div class="gateway-badge">
+        <span style="color: var(--accent-cyan);">GATEWAY PORT:</span>
+        <span style="color: #ffffff;">8095</span>
+      </div>
+      <button id="btnResetLogs" class="secondary danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: auto;">Clear Gateway Logs</button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    
+    <!-- COLUMN 1: GATEWAY CONFIG & SECURITY FILTERING -->
+    <section class="column">
+      
+      <!-- Panel 1: Rate Limiting Algorithm Suite -->
+      <div class="card">
+        <div class="card-title">⚙️ Algorithm Controller</div>
+        
+        <div class="form-group">
+          <label for="selectAlgorithm">Active Limiter</label>
+          <select id="selectAlgorithm">
+            <option value="token-bucket">Token Bucket (Burst Tolerance)</option>
+            <option value="leaky-bucket">Leaky Bucket (Traffic Shaper)</option>
+            <option value="sliding-window">Sliding Window Log (Precise)</option>
+          </select>
+        </div>
+
+        <!-- Dynamic configuration parameters -->
+        <!-- Token Bucket Config -->
+        <div id="config-token-bucket" class="algo-config">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tbCapacity">Bucket Capacity</label>
+              <input type="number" id="tbCapacity" min="1" max="50" value="10">
+            </div>
+            <div class="form-group">
+              <label for="tbRefill">Refill Rate (/sec)</label>
+              <input type="number" id="tbRefill" min="0.1" max="20" step="0.5" value="2">
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaky Bucket Config -->
+        <div id="config-leaky-bucket" class="algo-config" style="display: none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="lbCapacity">Queue Capacity</label>
+              <input type="number" id="lbCapacity" min="1" max="20" value="5">
+            </div>
+            <div class="form-group">
+              <label for="lbLeak">Leak Rate (Req/sec)</label>
+              <input type="number" id="lbLeak" min="0.1" max="10" step="0.5" value="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Sliding Window Config -->
+        <div id="config-sliding-window" class="algo-config" style="display: none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="swLimit">Max Requests</label>
+              <input type="number" id="swLimit" min="1" max="100" value="10">
+            </div>
+            <div class="form-group">
+              <label for="swWindow">Window Size (Sec)</label>
+              <input type="number" id="swWindow" min="1" max="60" value="10">
+            </div>
+          </div>
+        </div>
+
+        <button id="btnSaveSettings" class="success" style="margin-top: 0.5rem; width: 100%;">Apply Configuration</button>
+      </div>
+
+      <!-- Panel 2: API Gateway Security Shield -->
+      <div class="card flex-grow" style="overflow-y: auto;">
+        <div class="card-title">🛡️ Security Gateway Shield</div>
+        
+        <!-- API Key Authentication toggle & register -->
+        <div class="security-card" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-main);">Enforce API Key Auth</span>
+            <label class="switch">
+              <input type="checkbox" id="chkApiKeyRequired">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          
+          <div id="apiKeySection" style="display: none; margin-top: 0.5rem;">
+            <div class="form-group">
+              <label>API Key Registry</label>
+              <div style="display: flex; gap: 0.4rem; margin-bottom: 0.5rem;">
+                <input type="text" id="txtNewApiKey" placeholder="Add API Key (e.g. dev-user-1)" style="flex-grow: 1;">
+                <button id="btnAddApiKey" class="success" style="padding: 0.45rem;">+</button>
+              </div>
+              <div id="apiKeysList" class="badge-list">
+                <!-- dynamic badge keys -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- IP Blacklist controller -->
+        <div class="form-group" style="margin-top: 0.75rem;">
+          <label>IP Blacklist Filter</label>
+          <div style="display: flex; gap: 0.4rem; margin-bottom: 0.5rem;">
+            <input type="text" id="txtBlacklistIp" placeholder="Add IP (e.g. 192.168.1.99)" style="flex-grow: 1;">
+            <button id="btnBlacklistIp" class="danger" style="padding: 0.45rem;">+</button>
+          </div>
+          <div id="blacklistList" class="badge-list">
+            <!-- dynamic blocked IPs -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- COLUMN 2: REAL-TIME CANVAS PHYSICS VISUALIZER & SIMULATOR -->
+    <section class="column" style="flex-grow: 1;">
+      
+      <!-- Visualizer Card -->
+      <div class="card flex-grow" style="height: 60%; min-height: 350px;">
+        <div class="card-title">
+          <span>🔮 Gateway Traffic Canvas</span>
+          <span id="txtCanvasStatus" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-cyan);">Tokens: 10/10</span>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="canvasRateLimit"></canvas>
+        </div>
+      </div>
+
+      <!-- Traffic Generator Sandbox -->
+      <div class="card" style="height: 40%; min-height: 250px;">
+        <div class="card-title">📡 SRE Traffic Injector (Simulator)</div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="selectClientIp">Simulated Client IP</label>
+            <select id="selectClientIp">
+              <option value="192.168.1.10">Client Alpha (192.168.1.10)</option>
+              <option value="10.0.0.5">Client Beta (10.0.0.5)</option>
+              <option value="192.168.1.99">Blocked Attacker (192.168.1.99)</option>
+              <option value="custom">Custom Client IP...</option>
+            </select>
+          </div>
+          <div class="form-group" id="customClientIpGroup" style="display: none;">
+            <label for="txtCustomIp">Custom Client IP</label>
+            <input type="text" id="txtCustomIp" placeholder="e.g. 172.16.0.4">
+          </div>
+          <div class="form-group">
+            <label for="selectApiKey">Injected API Key</label>
+            <select id="selectApiKey">
+              <option value="">No API Key</option>
+              <option value="shield-dev-123">shield-dev-123 (Valid)</option>
+              <option value="shield-admin-999">shield-admin-999 (Valid)</option>
+              <option value="invalid-key-999">invalid-key-999 (Invalid)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+            <label for="rangeTrafficRate" style="margin: 0;">Traffic Auto-Injection Rate</label>
+            <span id="valTrafficRate" style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--accent-cyan); font-weight: bold;">0 Req/sec (Stopped)</span>
+          </div>
+          <input type="range" id="rangeTrafficRate" min="0" max="15" step="1" value="0">
+        </div>
+
+        <div style="display: flex; gap: 0.65rem; margin-top: 0.75rem;">
+          <button id="btnSingleRequest" class="secondary" style="flex-grow: 1;">Inject Single Request</button>
+          <button id="btnToggleTraffic" class="success" style="flex-grow: 1;">Start Traffic Loop</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- COLUMN 3: LIVE SRE METRICS & REQUEST TRACES -->
+    <section class="column">
+      
+      <!-- Panel 1: SRE Metrics Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Total Traffic</div>
+          <div class="metric-val" id="statTotal">0</div>
+        </div>
+        <div class="metric-card success">
+          <div class="metric-label">Passed Requests</div>
+          <div class="metric-val" id="statPassed">0</div>
+        </div>
+        <div class="metric-card warning">
+          <div class="metric-label">Rate Limited (429)</div>
+          <div class="metric-val" id="statLimited">0</div>
+        </div>
+        <div class="metric-card error">
+          <div class="metric-label">Security Blocks</div>
+          <div class="metric-val" id="statBlocked">0</div>
+        </div>
+      </div>
+
+      <!-- Live Chart -->
+      <div class="card" style="height: 180px; flex-shrink: 0;">
+        <div class="card-title">📉 Gateway Deflection Velocity</div>
+        <div style="position: relative; height: 125px; width: 100%;">
+          <canvas id="chartTrafficSummary"></canvas>
+        </div>
+      </div>
+
+      <!-- Live Request Trace Audit Logs -->
+      <div class="card flex-grow" style="overflow: hidden;">
+        <div class="card-title">📋 Live Proxy Request Trace</div>
+        <div id="logsContainer" class="audit-list">
+          <div style="color: var(--text-dark); text-align: center; margin-top: 3rem; font-size: 0.75rem;">Waiting for gateway requests...</div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="js/canvas-limit.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
