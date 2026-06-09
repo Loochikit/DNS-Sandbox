@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNS-Sandbox // UDP DNS Resolver & Spoofing Console</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Chart.js CDN for cache graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  
+  <header>
+    <div class="brand">
+      <div class="brand-icon">D</div>
+      <div>
+        <h1>DNS-Sandbox</h1>
+        <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">UDP DNS Server & Resolution Visualizer</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <div class="gateway-badge">
+        <span style="color: var(--accent-cyan);">UDP PORT:</span>
+        <span style="color: #ffffff;">8053</span>
+      </div>
+      <button id="btnClearLogs" class="secondary danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: auto;">Clear Log Trace</button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    
+    <!-- COLUMN 1: ZONE REGISTRY & SECURITY EXPLOIT -->
+    <section class="column">
+      
+      <!-- Panel 1: Authoritative Zone File File -->
+      <div class="card flex-grow" style="height: 55%; min-height: 280px; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="card-title">📖 Authoritative Zone File</div>
+        
+        <div id="registryList" class="zone-registry-table" style="flex-grow: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 0.75rem; margin-bottom: 0.75rem;">
+          <!-- dynamic table rows -->
+        </div>
+
+        <div class="zone-editor-form" style="border-top: 1px solid var(--card-border); padding-top: 0.75rem;">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Domain</label>
+              <input type="text" id="txtDomain" placeholder="example.com" style="padding: 0.3rem;">
+            </div>
+            <div class="form-group">
+              <label>Type</label>
+              <select id="selectRecordType" style="padding: 0.3rem;">
+                <option value="A">A (IPv4 Address)</option>
+                <option value="CNAME">CNAME (Alias)</option>
+                <option value="MX">MX (Mail Server)</option>
+                <option value="TXT">TXT (Text Info)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 0.4rem;">
+            <div class="form-group">
+              <label>Value / Destination</label>
+              <input type="text" id="txtRecordValue" placeholder="192.0.2.1 / target.com" style="padding: 0.3rem;">
+            </div>
+            <div class="form-group">
+              <label>TTL (s)</label>
+              <input type="number" id="numRecordTtl" value="300" style="padding: 0.3rem;">
+            </div>
+          </div>
+          <button id="btnAddRecord" class="success" style="width: 100%; margin-top: 0.5rem; padding: 0.4rem;">Add DNS Record</button>
+        </div>
+      </div>
+
+      <!-- Panel 2: Cache Poisoning Spoofing Controller -->
+      <div class="card" style="height: 45%; min-height: 230px; display: flex; flex-direction: column;">
+        <div class="card-title">💀 DNS Cache Poisoning Exploit</div>
+        
+        <div class="security-card" style="flex-shrink: 0; padding: 0.6rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+          <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-main);">Enable Cache Poisoning</span>
+          <label class="switch">
+            <input type="checkbox" id="chkPoisonEnabled">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div id="poisonList" class="poison-list-table" style="flex-grow: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 0.75rem; margin-bottom: 0.5rem;">
+          <!-- dynamic table lists -->
+        </div>
+
+        <div style="border-top: 1px solid var(--card-border); padding-top: 0.5rem;">
+          <div class="form-row">
+            <input type="text" id="txtPoisonDomain" placeholder="Target domain" style="padding: 0.3rem;">
+            <input type="text" id="txtPoisonIp" placeholder="Malicious IP redirect" style="padding: 0.3rem;">
+          </div>
+          <button id="btnPoisonDomain" class="danger" style="width: 100%; margin-top: 0.4rem; padding: 0.4rem;">Inject Poison Record</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- COLUMN 2: UDP SANDBOX & CANVAS TREE RESOLVER -->
+    <section class="column" style="flex-grow: 1;">
+      
+      <!-- Visualizer Card -->
+      <div class="card flex-grow" style="height: 60%; min-height: 350px;">
+        <div class="card-title">
+          <span>🔮 Recursive Resolution Tree Tracer</span>
+          <span id="txtCanvasStatus" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-cyan);">UDP Socket Server Active</span>
+        </div>
+        <div class="canvas-wrapper">
+          <canvas id="canvasDnsResolution"></canvas>
+        </div>
+      </div>
+
+      <!-- Traffic Injector Simulator -->
+      <div class="card" style="height: 40%; min-height: 250px;">
+        <div class="card-title">📡 DNS Traffic Injector (UDP Client Simulator)</div>
+        
+        <div class="form-row">
+          <div class="form-group" style="flex: 2;">
+            <label for="txtQueryDomain">Lookup Domain Name</label>
+            <input type="text" id="txtQueryDomain" placeholder="e.g. google.com" value="google.com">
+          </div>
+          <div class="form-group">
+            <label for="selectQueryType">Query Record Type</label>
+            <select id="selectQueryType">
+              <option value="A">A (IP)</option>
+              <option value="CNAME">CNAME</option>
+              <option value="MX">MX</option>
+              <option value="TXT">TXT</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+            <label for="rangeQueryRate" style="margin: 0;">Auto-Query Injection Rate</label>
+            <span id="valQueryRate" style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--accent-cyan); font-weight: bold;">0 QPS (Stopped)</span>
+          </div>
+          <input type="range" id="rangeQueryRate" min="0" max="8" step="1" value="0">
+        </div>
+
+        <div style="display: flex; gap: 0.65rem; margin-top: 0.75rem;">
+          <button id="btnSingleQuery" class="secondary" style="flex-grow: 1;">Resolve Query (UDP Send)</button>
+          <button id="btnToggleQueries" class="success" style="flex-grow: 1;">Start Query Loop</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- COLUMN 3: SRE METRICS, CACHE & LOG TRACES -->
+    <section class="column">
+      
+      <!-- Metrics Card Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Total Queries</div>
+          <div class="metric-val" id="statQueries">0</div>
+        </div>
+        <div class="metric-card success">
+          <div class="metric-label">Cache Hits</div>
+          <div class="metric-val" id="statHits">0</div>
+        </div>
+        <div class="metric-card warning">
+          <div class="metric-label">Recursive Misses</div>
+          <div class="metric-val" id="statMisses">0</div>
+        </div>
+        <div class="metric-card error">
+          <div class="metric-label">Spoof Hijacks</div>
+          <div class="metric-val" id="statHijacks">0</div>
+        </div>
+      </div>
+
+      <!-- Cache Database Table (TTL Expiry countdown) -->
+      <div class="card" style="height: 40%; min-height: 220px; overflow: hidden; display: flex; flex-direction: column;">
+        <div class="card-title">
+          <span>💾 Local Resolver Cache DB</span>
+          <button id="btnClearCache" class="secondary danger" style="padding: 0.15rem 0.45rem; font-size: 0.65rem; width: auto; font-family: var(--font-title);">Flush</button>
+        </div>
+        <div id="cacheList" class="cache-list-table" style="flex-grow: 1; overflow-y: auto; font-family: var(--font-mono); font-size: 0.75rem;">
+          <!-- dynamic cache logs -->
+        </div>
+      </div>
+
+      <!-- Live logs traces -->
+      <div class="card flex-grow" style="overflow: hidden;">
+        <div class="card-title">📋 Inbound DNS Traffic Logs</div>
+        <div id="logsContainer" class="audit-list">
+          <div style="color: var(--text-dark); text-align: center; margin-top: 3rem; font-size: 0.75rem;">Waiting for DNS requests...</div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="js/dns-visual.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

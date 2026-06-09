@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: dns-sandbox
+    runtime: docker
+    plan: free
+    rootDir: dns-sandbox
+    envVars:
+      - key: PORT
+        value: 8060
+      - key: DNS_PORT
+        value: 8053
