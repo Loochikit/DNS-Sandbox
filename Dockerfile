@@ -1,18 +1,18 @@
 FROM node:20-alpine
 
-# Set working directory
+# Set directory
 WORKDIR /app
 
-# Install dependencies
+# Copy package files and install production dependencies
 COPY package*.json ./
 RUN npm ci --only=production
 
 # Copy source code
 COPY . .
 
-# Expose dashboard (8090) and API gateway proxy (8095)
-EXPOSE 8090
-EXPOSE 8095
+# Expose SRE dashboard (8060) and UDP DNS Server (8053)
+EXPOSE 8060
+EXPOSE 8053/udp
 
-# Start the application
+# Command to run
 CMD ["node", "server.js"]

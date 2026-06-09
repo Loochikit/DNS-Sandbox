@@ -1,7 +1,7 @@
 {
-  "name": "ratelimiter-shield",
+  "name": "dns-sandbox",
   "version": "1.0.0",
-  "description": "API Gateway Reverse Proxy & Rate Limiter Shield",
+  "description": "Visual DNS UDP Server & Recursive Resolver Playground",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,9 +9,9 @@
     "test": "node test.js"
   },
   "keywords": [
-    "rate-limiting",
-    "api-gateway",
-    "reverse-proxy",
+    "dns-server",
+    "dns-resolver",
+    "udp-sockets",
     "sre",
     "websockets"
   ],
